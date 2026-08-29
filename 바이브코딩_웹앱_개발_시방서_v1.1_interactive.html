@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>바이브코딩 웹앱 개발 시방서 – 달력 가계부 (v1.1 인터랙티브)</title>
+<style>
+  :root{
+    --brand:#3b5bdb; --accent:#e8590c; --ink:#212529; --muted:#6c757d;
+    --line:#dee2e6; --warnbg:#fff3bf; --warnbd:#f59f00; --okbg:#d3f9d8; --okbd:#40c057;
+    --codebg:#f1f3f5; --stepbg:#f8f0fc; --stepbd:#9775fa; --frbg:#e7f5ff; --frbd:#339af0;
+    --chipbg:#eef2ff; --chipbd:#5c7cfa; --modalbg:#ffffff; --overlaybg:rgba(15,23,42,0.55);
+  }
+  *{box-sizing:border-box;}
+  body{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+       line-height:1.8; color:var(--ink); max-width:920px; margin:0 auto; padding:40px 24px;}
+  h1{font-size:28px; line-height:1.4; color:var(--brand); border-bottom:3px solid var(--brand); padding-bottom:12px;}
+  h2{font-size:22px; color:var(--brand); margin-top:44px; border-left:6px solid var(--brand); padding-left:12px;}
+  h3{font-size:17px; color:var(--accent); margin-top:26px;}
+  p{margin:10px 0;}
+  ul,ol{margin:8px 0 8px 4px; padding-left:22px;}
+  li{margin:5px 0;}
+  table{border-collapse:collapse; width:100%; font-size:13.5px; margin:16px 0;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--codebg); font-weight:700;}
+  tr:nth-child(even) td{background:#fafbfc;}
+  code{background:var(--codebg); padding:2px 7px; border-radius:5px;
+       font-family:Consolas,"Courier New",monospace; font-size:13px; color:#c92a2a;}
+  pre{background:#212529; color:#f8f9fa; padding:14px 18px; border-radius:10px;
+      overflow-x:auto; font-size:13px; line-height:1.7; margin:14px 0;}
+  pre code{background:transparent; color:inherit; padding:0;}
+  .warn{border-left:5px solid var(--warnbd); background:var(--warnbg);
+        padding:14px 18px; border-radius:0 10px 10px 0; margin:18px 0;}
+  .ok{border-left:5px solid var(--okbd); background:var(--okbg);
+      padding:14px 18px; border-radius:0 10px 10px 0; margin:18px 0;}
+  .toc{background:var(--codebg); border-radius:12px; padding:18px 24px; margin:24px 0;}
+  .pb{background:#f4f6fb; border:1px dashed var(--frbd); border-radius:10px;
+      padding:12px 16px; margin:10px 0; font-size:14px;}
+  .pb b{color:var(--frbd);}
+  .sub{color:var(--muted); font-size:14.5px; margin-top:6px;}
+  .tag{display:inline-block; background:var(--brand); color:#fff; font-size:12px;
+       border-radius:20px; padding:2px 10px; margin-right:6px;}
+  .ac{list-style:none; padding-left:4px;}
+  .ac li::before{content:"☐ "; color:var(--frbd); font-weight:700;}
+
+  /* ===== 인터랙티브 추가 ===== */
+  .svc-chip{display:inline-block; cursor:pointer; user-select:none;
+            background:var(--chipbg); border:1px solid var(--chipbd); color:var(--chipbd);
+            padding:2px 9px; border-radius:14px; font-size:12.5px; font-weight:600;
+            margin:0 4px 4px 0; transition:all .15s; line-height:1.45;}
+  .svc-chip:hover{background:var(--chipbd); color:#fff; box-shadow:0 2px 6px rgba(92,124,250,0.35);}
+  .svc-chip::after{content:" ↗"; font-weight:400; opacity:0.7;}
+  .chip-row td{background:#f8f9fc;}
+  .banner{border:2px solid var(--brand); border-radius:12px; padding:14px 18px;
+          margin:18px 0; background:#eaf0ff;}
+  .banner b{color:var(--brand);}
+
+  /* 모달 오버레이 + 패널 */
+  #svcModal{position:fixed; inset:0; display:none; z-index:9999;}
+  #svcModal.open{display:block;}
+  #svcModal .overlay{position:absolute; inset:0; background:var(--overlaybg);}
+  #svcModal .panel{position:absolute; top:0; right:0; height:100%;
+                   width:min(520px,96vw); background:var(--modalbg);
+                   box-shadow:-8px 0 32px rgba(0,0,0,0.18);
+                   display:flex; flex-direction:column;}
+  #svcModal .head{display:flex; align-items:center; justify-content:space-between;
+                  padding:18px 22px; border-bottom:1px solid var(--line);
+                  background:#f8f9fc;}
+  #svcModal .head h3{margin:0; font-size:18px; color:var(--brand);}
+  #svcModal .head .close{cursor:pointer; background:transparent; border:0;
+                        font-size:22px; color:var(--muted); line-height:1;}
+  #svcModal .head .close:hover{color:#212529;}
+  #svcModal .body{padding:18px 22px; overflow-y:auto; flex:1;}
+  #svcModal .foot{padding:14px 22px; border-top:1px solid var(--line);
+                  background:#f8f9fc; display:flex; gap:8px; flex-wrap:wrap;}
+  #svcModal .urlbox{background:#f1f3f5; padding:10px 12px; border-radius:8px;
+                    font-family:Consolas,"Courier New",monospace; font-size:12.5px;
+                    color:#0d6efd; word-break:break-all;}
+  #svcModal .step{border-left:3px solid var(--frbd); background:#f8faff;
+                  padding:10px 14px; margin:10px 0; border-radius:0 8px 8px 0;
+                  font-size:14px;}
+  #svcModal .step b{color:var(--frbd);}
+  #svcModal .inp{display:flex; flex-direction:column; gap:6px; margin:10px 0;}
+  #svcModal .inp label{font-size:13px; font-weight:600; color:var(--accent);}
+  #svcModal .inp input{font-family:Consolas,"Courier New",monospace; font-size:13px;
+                       padding:8px 10px; border:1px solid var(--line);
+                       border-radius:8px;}
+  #svcModal .inp input:focus{outline:0; border-color:var(--frbd);
+                             box-shadow:0 0 0 3px rgba(51,154,240,0.18);}
+  .pbtn{cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink);
+        padding:7px 14px; border-radius:8px; font-size:13px; font-weight:500;
+        transition:all .15s;}
+  .pbtn:hover{border-color:var(--brand); color:var(--brand);}
+  .pbtn.primary{background:var(--brand); color:#fff; border-color:var(--brand);}
+  .pbtn.primary:hover{background:#2f4acf;}
+  .copyok{display:inline-block; color:var(--okbd); font-size:12px; margin-left:8px;
+          opacity:0; transition:opacity .2s;}
+  .copyok.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<h1>바이브코딩 웹앱 개발 시방서 (Specification) — 인터랙티브 v1.1</h1>
+<p class="sub">예시 프로젝트: "달력 가계부" · v1.1 · 2026-08-29 · 모든 서비스명 = 클릭. 콘솔 새 창 + 우측 설정 패널 동시 실행</p>
+
+<div class="banner">
+<b>🆕 v1.1 인터랙티브 사용법</b>
+<ul style="margin:6px 0 0 16px;">
+  <li>문서 안의 <span class="svc-chip" style="cursor:default;">서비스명 ↗</span> 모양 칩을 클릭하면 ① 새 탭에서 해당 서비스 콘솔이 열리고, ② 화면 우측에 그 서비스의 "설정 체크리스트 + 입력폼 + 복사 버튼" 패널이 자동으로 뜸</li>
+  <li>패널의 단계를 따라 하단에 입력값(예: Supabase URL, anon key)을 채우면 <b>.env 템플릿 복사 버튼</b>으로 한 번에 옮길 수 있음</li>
+  <li>X-Frame 정책으로 임베드는 막혀 있어 모든 링크는 <code>target="_blank" rel="noopener noreferrer"</code> 새 창으로 처리됨(브라우저 차단 회피)</li>
+</ul>
+</div>
+
+<p>이 시방서는 초보자 가이드(<i>바이브코딩으로 웹앱 만들고 세상에 내놓기</i>)의 내용을 그대로 반영한 실행 문서입니다. 가이드에서 추천한 스택(<b>Next.js + Supabase + Vercel</b>)과 보안 원칙(RLS 필수, 환경변수 필수)을 준수하며, 모든 기능에 <b>완료 판정 기준(수용 기준)</b>과 <b>AI 프롬프트 템플릿</b>을 붙였습니다. AI 코딩 도구(Cursor·Claude Code 등)와 대화할 때 이 문서의 프롬프트 박스를 복사·붙여넣기하면 됩니다.</p>
+
+<div class="toc">
+<b>목차 (클릭 시 점프)</b>
+<ol>
+  <li><a href="#s1">프로젝트 개요</a></li>
+  <li><a href="#s2">범위 (In / Out)</a></li>
+  <li><a href="#s3">기능 요구사항 (FR-001 ~ FR-006) + 판정 기준 + AI 프롬프트</a></li>
+  <li><a href="#s4">화면·UI 정의</a></li>
+  <li><a href="#s5">데이터 모델 (Supabase 스키마 + RLS)</a></li>
+  <li><a href="#s6">API 엔드포인트</a></li>
+  <li><a href="#s7">비기능 요구사항</a></li>
+  <li><a href="#s8">개발 단계별 체크리스트 (가이드 8단계 매핑)</a></li>
+  <li><a href="#s9">배포 전 최종 점검</a></li>
+  <li><a href="#s10">AI 프롬프트 템플릿 모음</a></li>
+</ol>
+</div>
+
+<h2 id="s1">1. 프로젝트 개요</h2>
+<table>
+<tr><th style="width:140px;">항목</th><th>내용</th></tr>
+<tr><td>프로젝트명</td><td>달력 가계부 (Calendar Ledger)</td></tr>
+<tr><td>한 줄 정의</td><td>개인의 수입·지출을 등록하고, 달력에서 한눈에 확인하는 웹앱</td></tr>
+<tr><td>대상 사용자</td><td>개인 1인 사용 (회원가입 후 본인 데이터만 관리)</td></tr>
+<tr><td>개발 방식</td><td>바이브코딩 (AI가 코드 생성 → 사람이 검수·테스트)</td></tr>
+<tr><td>기술스택</td><td><code>Next.js</code> (App Router) + <code>TypeScript</code> + <code>Tailwind CSS</code> + <code>Supabase</code> (Auth · PostgreSQL · RLS) + <code>Vercel</code> 배포
+  → 각 항목을 클릭해 설치 가이드를 열어 보세요:
+  <span class="svc-chip" data-svc="nextjs-docs">Next.js 문서</span>
+  <span class="svc-chip" data-svc="tailwind-docs">Tailwind 문서</span>
+  <span class="svc-chip" data-svc="supabase-dashboard">Supabase</span>
+  <span class="svc-chip" data-svc="vercel-dashboard">Vercel</span></td></tr>
+<tr><td>참고 문서</td><td>초보자 가이드: 바이브코딩으로 웹앱 만들고 세상에 내놓기 (7개 섹션 문서)</td></tr>
+<tr><td>성공 기준(1차)</td><td>배포 후 "회원가입 → 로그인 → 지출 등록 → 달력 확인 → 로그아웃"이 5분 안에 완료되는 상태</td></tr>
+</table>
+
+<h2 id="s2">2. 범위 (In / Out)</h2>
+<div class="ok"><b>✅ 이번 버전(1.0) 범위에 포함 (In)</b>
+<ul>
+  <li>이메일 회원가입 / 로그인 / 로그아웃 (Supabase Auth)</li>
+  <li>수입·지출 거래 등록·수정·삭제 (CRUD)</li>
+  <li>월별 달력 보기 (거래 있는 날짜 표시, 날짜 클릭 시 상세)</li>
+  <li>월별 합계 요약 (수입/지출/잔액, 카테고리별 비중)</li>
+  <li>카테고리 기본 제공 + 사용자 추가</li>
+  <li>행 단위 보안(RLS) 적용, 모바일 우선 반응형</li>
+</ul></div>
+<div class="warn"><b>⛔ 이번 버전 범위 제외 (Out) — 추가하지 말 것</b>
+<ul>
+  <li>환율 변환, 자산·투자 관리, 예산 설정, 알림·리마인더</li>
+  <li>다른 사용자와의 공유·가계부 합치기</li>
+  <li>모바일 앱(네이티브), 오프라인 동기화</li>
+  <li>결제 연동, 다국어(i18n), 관리자 페이지</li>
+  <li>기타 가이드에 없는 임의 기능 — <b>요구사항 변경 시 이 문서를 먼저 수정할 것</b></li>
+</ul></div>
+
+<h2 id="s3">3. 기능 요구사항 (FR-001 ~ FR-006)</h2>
+<p>각 기능에는 <b>수용 기준(Acceptance Criteria)</b>과 <b>AI 프롬프트 템플릿</b>이 붙어 있습니다. 수용 기준이 전부 통과해야 해당 기능이 "완료"입니다.</p>
+
+<div class="fr">
+<b class="fr-id">FR-001</b> 이메일 회원 인증 (회원가입·로그인·로그아웃)<br>
+<span class="sub">설명: Supabase Auth로 이메일+비밀번호 인증을 구현. 로그인하지 않으면 모든 페이지 접근 시 로그인 화면으로 이동.
+설정 시작: <span class="svc-chip" data-svc="supabase-dashboard">Supabase 콘솔 열기</span>
+<span class="svc-chip" data-svc="supabase-rls-doc">RLS 개념 문서</span></span>
+<ul class="ac">
+  <li>AC-001.1 이메일+비밀번호(8자 이상)로 회원가입이 가능하다</li>
+  <li>AC-001.2 가입 성공 시 자동 로그인되어 홈 화면으로 이동한다</li>
+  <li>AC-001.3 잘못된 비밀번호 입력 시 한글 오류 메시지가 표시된다</li>
+  <li>AC-001.4 중복 이메일 가입 시 중복 안내 메시지가 표시된다</li>
+  <li>AC-001.5 로그아웃 버튼 클릭 시 세션이 종료되고 로그인 화면으로 이동한다</li>
+  <li>AC-001.6 브라우저 새로고침 후에도 로그인 상태가 유지된다</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "Next.js App Router와 Supabase Auth로 이메일 회원가입/로그인/로그아웃을 구현해 줘. 로그인 안 한 사용자는 모든 페이지에서 /login으로 리다이렉트하고, 로그인 상태는 새로고침 후에도 유지돼야 해. 오류 메시지는 한국어로 표시하고, 비밀번호는 8자 이상 검증해 줘."</div>
+</div>
+
+<div class="fr">
+<b class="fr-id">FR-002</b> 거래 등록·수정·삭제 (CRUD)<br>
+<span class="sub">설명: 수입/지출 내역을 등록·조회·수정·삭제. 본인 데이터만 접근 가능(RLS).</span>
+<ul class="ac">
+  <li>AC-002.1 등록 폼에 유형(수입/지출), 금액, 날짜, 카테고리, 메모 입력란이 있다</li>
+  <li>AC-002.2 저장 버튼 클릭 시 목록에 즉시 반영된다</li>
+  <li>AC-002.3 수정 버튼으로 기존 내역을 변경할 수 있다</li>
+  <li>AC-002.4 삭제 버튼 클릭 시 확인 문구("정말 삭제할까요?")가 뜨고, 확인 시에만 삭제된다</li>
+  <li>AC-002.5 금액은 0보다 큰 숫자만, 날짜·유형은 필수. 미충족 시 입력 화면에서 검증 오류가 표시된다</li>
+  <li>AC-002.6 다른 사용자의 거래는 조회·수정·삭제 모두 불가능하다 (RLS 검증)</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "Supabase 테이블 transactions에 대해 수입/지출 거래를 등록·목록 조회·수정·삭제하는 CRUD UI를 만들어 줘. 폼은 유형(수입/지출), 금액, 날짜, 카테고리, 메모로 구성하고, 삭제 시 확인 다이얼로그를 띄워 줘. 금액은 0 초과 숫자만 허용하고, 모든 요청은 로그인 사용자 본인(user_id)만 접근하도록 해 줘."</div>
+</div>
+
+<div class="fr">
+<b class="fr-id">FR-003</b> 월별 달력 보기<br>
+<span class="sub">설명: 월 단위 달력에 거래가 있는 날짜를 표시하고, 날짜를 클릭하면 해당일 거래 목록을 보여줌.</span>
+<ul class="ac">
+  <li>AC-003.1 이번 달 달력이 기본 표시된다 (월~일 그리드, 날짜·요일 표시)</li>
+  <li>AC-003.2 거래가 있는 날짜에는 지출 합계(또는 마커)가 표시된다</li>
+  <li>AC-003.3 날짜 클릭 시 해당일의 거래 목록(금액·카테고리·메모)이 표시된다</li>
+  <li>AC-003.4 이전/다음 월 이동 버튼이 동작한다</li>
+  <li>AC-003.5 오늘 날짜는 시각적으로 강조된다</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "월별 달력 컴포넌트를 만들어 줘. 각 날짜 셀에 그날의 지출 합계를 표시하고, 날짜를 클릭하면 아래에 해당일 거래 목록이 뜨게 해 줘. 이전/다음 월 이동 버튼과 오늘 날짜 강조를 포함하고, 모바일에서도 잘 보이게 반응형으로 만들어 줘."</div>
+</div>
+
+<div class="fr">
+<b class="fr-id">FR-004</b> 월별 요약 (합계·카테고리 비중)<br>
+<span class="sub">설명: 선택한 달의 수입·지출·잔액과 카테고리별 지출 비중을 한눈에 보여줌.</span>
+<ul class="ac">
+  <li>AC-004.1 이번 달 수입 합계, 지출 합계, 잔액(수입-지출)이 카드에 표시된다</li>
+  <li>AC-004.2 카테고리별 지출 비중이 간단한 바 차트로 표시된다</li>
+  <li>AC-004.3 달력에서 이동한 월에 맞춰 요약도 함께 갱신된다</li>
+  <li>AC-004.4 거래가 없으면 "기록이 없습니다" 안내가 표시된다</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "선택한 월의 수입 합계, 지출 합계, 잔액을 카드 3개로 보여주고, 카테고리별 지출 비중을 바 차트로 표시해 줘. 달력의 월 이동과 연동되게 하고, 데이터가 없으면 안내 문구를 보여 줘."</div>
+</div>
+
+<div class="fr">
+<b class="fr-id">FR-005</b> 카테고리 관리<br>
+<span class="sub">설명: 기본 카테고리(식비·교통·쇼핑·주거·문화·기타)를 제공하고, 사용자가 직접 추가·수정 가능.</span>
+<ul class="ac">
+  <li>AC-005.1 기본 카테고리 6종(식비, 교통, 쇼핑, 주거, 문화, 기타)이 제공된다</li>
+  <li>AC-005.2 설정 화면에서 카테고리 추가가 가능하다</li>
+  <li>AC-005.3 추가한 카테고리는 거래 등록 폼 선택지에 즉시 반영된다</li>
+  <li>AC-005.4 카테고리 삭제 시 해당 카테고리의 기존 거래는 "기타"로 처리된다</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "카테고리를 관리하는 기능을 추가해 줘. 기본값은 식비·교통·쇼핑·주거·문화·기타이고, 사용자가 추가/수정/삭제할 수 있게 해 줘. 삭제된 카테고리의 기존 거래는 '기타'로 바뀌고, 거래 등록 폼의 선택지에 실시간 반영되게 해 줘."</div>
+</div>
+
+<div class="fr">
+<b class="fr-id">FR-006</b> 데이터 보안 (RLS · 시크릿 관리) — <span class="tag">필수</span><br>
+<span class="sub">설명: 모든 테이블에 행 단위 보안(RLS)을 적용하고, API 키 등 시크릿은 환경변수로만 관리.
+바로 실행: <span class="svc-chip" data-svc="supabase-sql">Supabase SQL Editor</span>
+<span class="svc-chip" data-svc="supabase-rls-doc">RLS 가이드</span>
+<span class="svc-chip" data-svc="vercel-env-doc">Vercel 환경변수 가이드</span></span>
+<ul class="ac">
+  <li>AC-006.1 profiles·transactions 테이블 모두 RLS가 활성화되어 있다</li>
+  <li>AC-006.2 모든 정책이 "auth.uid() = user_id" 조건으로 본인 데이터만 허용한다</li>
+  <li>AC-006.3 클라이언트에는 anon 키만 노출되고, 서비스 롤 키는 서버(Supabase 함수/환경변수)에서만 사용한다</li>
+  <li>AC-006.4 .env 파일에 시크릿이 있고, .gitignore에 .env가 포함되어 GitHub에 업로드되지 않는다</li>
+  <li>AC-006.5 배포 환경(Vercel)에도 동일한 환경변수가 설정되어 있다</li>
+</ul>
+<div class="pb"><b>▶ AI 프롬프트:</b> "profiles와 transactions 테이블에 RLS(Row Level Security)를 활성화하고, 'auth.uid() = user_id' 조건으로 본인이 만든 행만 조회/삽입/수정/삭제할 수 있는 정책을 만들어 줘. 클라이언트에는 anon 키만 쓰고, 서비스 롤 키는 환경변수로 관리되게 해 줘. .env를 .gitignore에 추가해 줘. 마지막으로 RLS가 제대로 막히는지 테스트해 줘."</div>
+</div>
+
+<h2 id="s4">4. 화면·UI 정의</h2>
+<p>코드 작업은 AI 에디터에서:
+<span class="svc-chip" data-svc="cursor">Cursor</span>
+<span class="svc-chip" data-svc="claude-code">Claude Code</span>
+<span class="svc-chip" data-svc="vscode">VS Code</span></p>
+<table>
+<tr><th>화면</th><th>라우트</th><th>주요 UI 요소</th><th>비고</th></tr>
+<tr><td>로그인</td><td><code>/login</code></td><td>이메일·비밀번호 입력, 로그인 버튼, 회원가입 링크</td><td>오류 메시지 한국어</td></tr>
+<tr><td>회원가입</td><td><code>/signup</code></td><td>이메일·비밀번호·닉네임 입력, 가입 버튼</td><td>비밀번호 8자 이상 검증</td></tr>
+<tr><td>홈 (요약)</td><td><code>/</code></td><td>월별 수입·지출·잔액 카드, 카테고리 바 차트, 최근 거래 목록</td><td>로그인 후 기본 화면</td></tr>
+<tr><td>달력</td><td><code>/calendar</code></td><td>월별 달력, 날짜별 합계, 해당일 거래 목록, 월 이동 버튼</td><td>오늘 날짜 강조</td></tr>
+<tr><td>거래 등록·수정</td><td><code>/transactions/new</code>, <code>/transactions/[id]</code></td><td>유형·금액·날짜·카테고리·메모 폼</td><td>모달로도 가능(권장)</td></tr>
+<tr><td>카테고리 설정</td><td><code>/settings/categories</code></td><td>카테고리 목록·추가·수정·삭제</td><td>FR-005</td></tr>
+</table>
+<p><b>공통 규칙:</b> ① 모바일 우선(375px) ~ 데스크톱(1440px) 반응형 ② 상단 내비게이션(요약 / 달력 / 설정 / 로그아웃) ③ 모든 버튼·링크에 hover 상태 ④ 한국어 UI.</p>
+
+<h2 id="s5">5. 데이터 모델 (Supabase 스키마 + RLS)</h2>
+<p>아래 작업을 위해 콘솔을 열어 두세요:
+<span class="svc-chip" data-svc="supabase-sql">Supabase SQL Editor</span>
+<span class="svc-chip" data-svc="supabase-rls-doc">RLS 공식 가이드</span></p>
+
+<h3>5-1. profiles (사용자 프로필)</h3>
+<table>
+<tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr>
+<tr><td>id</td><td>uuid</td><td>PK, references auth.users ON DELETE CASCADE</td><td>Supabase Auth 사용자 ID</td></tr>
+<tr><td>email</td><td>text</td><td>not null, unique</td><td>이메일</td></tr>
+<tr><td>nickname</td><td>text</td><td></td><td>닉네임</td></tr>
+<tr><td>created_at</td><td>timestamptz</td><td>default now()</td><td>가입 시각</td></tr>
+</table>
+<h3>5-2. transactions (거래 내역)</h3>
+<table>
+<tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr>
+<tr><td>id</td><td>uuid</td><td>PK, default gen_random_uuid()</td><td>거래 ID</td></tr>
+<tr><td>user_id</td><td>uuid</td><td>not null, references profiles.id</td><td>소유자 (RLS 기준)</td></tr>
+<tr><td>type</td><td>text</td><td>not null, check (type in ('income','expense'))</td><td>수입/지출</td></tr>
+<tr><td>amount</td><td>numeric(12,2)</td><td>not null, check (amount &gt; 0)</td><td>금액 (양수만)</td></tr>
+<tr><td>category</td><td>text</td><td>not null, default '기타'</td><td>카테고리 이름</td></tr>
+<tr><td>memo</td><td>text</td><td></td><td>메모</td></tr>
+<tr><td>txn_date</td><td>date</td><td>not null</td><td>거래 발생일</td></tr>
+<tr><td>created_at</td><td>timestamptz</td><td>default now()</td><td>등록 시각</td></tr>
+</table>
+<h3>5-3. RLS 정책 (SQL 예시)</h3>
+<pre><code>alter table public.transactions enable row level security;
+alter table public.profiles     enable row level security;
+
+create policy "본인만 조회" on public.transactions
+  for select using (auth.uid() = user_id);
+create policy "본인만 등록" on public.transactions
+  for insert with check (auth.uid() = user_id);
+create policy "본인만 수정" on public.transactions
+  for update using (auth.uid() = user_id);
+create policy "본인만 삭제" on public.transactions
+  for delete using (auth.uid() = user_id);
+-- profiles에도 동일한 패턴 적용</code></pre>
+
+<h2 id="s6">6. API 엔드포인트</h2>
+<p>인증(회원가입·로그인)은 Supabase Auth가 담당하므로 별도 API를 만들지 않습니다. 거래 데이터는 아래 API(Next.js Route Handler)로 제공합니다.</p>
+<table>
+<tr><th>메서드</th><th>경로</th><th>인증</th><th>설명</th><th>성공 응답</th></tr>
+<tr><td>GET</td><td><code>/api/transactions?month=YYYY-MM</code></td><td>필수</td><td>해당 월 거래 목록 (본인만)</td><td><code>[{id, type, amount, category, memo, txn_date}]</code></td></tr>
+<tr><td>POST</td><td><code>/api/transactions</code></td><td>필수</td><td>거래 등록</td><td><code>{id, ...}</code> (201)</td></tr>
+<tr><td>PATCH</td><td><code>/api/transactions/:id</code></td><td>필수</td><td>거래 수정</td><td><code>{id, ...}</code></td></tr>
+<tr><td>DELETE</td><td><code>/api/transactions/:id</code></td><td>필수</td><td>거래 삭제</td><td><code>{ok: true}</code></td></tr>
+<tr><td>GET</td><td><code>/api/summary?month=YYYY-MM</code></td><td>필수</td><td>월별 수입·지출·카테고리 집계</td><td><code>{income, expense, balance, byCategory[]}</code></td></tr>
+</table>
+<div class="warn"><b>⚠️ 규칙:</b> ① 모든 엔드포인트는 서버에서 세션 확인 후 user_id 기준으로만 동작 ② 응답에 다른 사용자의 데이터 절대 포함 금지 ③ 에러 시 한글 메시지와 적절한 HTTP 상태 코드 반환(401/403/404/400).</div>
+
+<h2 id="s7">7. 비기능 요구사항</h2>
+<table>
+<tr><th style="width:110px;">분류</th><th>요구사항</th></tr>
+<tr><td>성능</td><td>메인 화면 LCP 2.5초 이내, 페이지 전환 3초 이내 (Vercel + Supabase 무료 티어 기준 실측)</td></tr>
+<tr><td>반응형</td><td>모바일(375px)·태블릿(768px)·데스크톱(1440px)에서 레이아웃 깨짐 없음</td></tr>
+<tr><td>보안</td><td>RLS 활성화, HTTPS(자동), 시크릿 환경변수, 존재하지 않는 패키지 설치 금지(슬롭스쿼팅 방지), 인증 흐름 수동 검토</td></tr>
+<tr><td>브라우저</td><td>최신 Chrome, Safari, Firefox, Edge에서 동일 동작</td></tr>
+<tr><td>비용</td><td>Vercel Hobby(상업용 금지)·Supabase Free(DB 500MB) 한도 내 운영, 한도 초과 시 즉시 알림 설정</td></tr>
+<tr><td>유지보수</td><td>Git 커밋 메시지 한글, 주요 기능마다 자동 테스트 1개 이상, AI가 만든 대형 변경은 diff 검토 후 병합</td></tr>
+</table>
+
+<h2 id="s8">8. 개발 단계별 체크리스트 (가이드 8단계 매핑)</h2>
+<table>
+<tr><th style="width:60px;">단계</th><th style="width:130px;">할 일</th><th>사용 서비스 (클릭)</th><th>완료 확인</th></tr>
+<tr class="chip-row"><td>1</td><td>기획</td><td><span class="svc-chip" data-svc="notion">메모 도구</span> <span class="svc-chip" data-svc="v0">v0 아이디어 시각화</span></td><td>☐ 범위(In/Out) 동의 완료</td></tr>
+<tr class="chip-row"><td>2</td><td>스택 선택</td><td><span class="svc-chip" data-svc="supabase-dashboard">Supabase 계정</span> <span class="svc-chip" data-svc="github">GitHub 계정</span> <span class="svc-chip" data-svc="vercel-dashboard">Vercel 계정</span></td><td>☐ 계정 생성, 프로젝트명 확정</td></tr>
+<tr class="chip-row"><td>3</td><td>환경 세팅</td><td><span class="svc-chip" data-svc="nodejs">Node.js 설치</span> <span class="svc-chip" data-svc="git">Git 설치</span> <span class="svc-chip" data-svc="vscode">VS Code</span> <span class="svc-chip" data-svc="github-new">새 저장소</span></td><td>☐ <code>node -v</code>, <code>git --version</code> 정상</td></tr>
+<tr class="chip-row"><td>4</td><td>AI 코딩</td><td><span class="svc-chip" data-svc="cursor">Cursor</span> <span class="svc-chip" data-svc="claude-code">Claude Code</span> <span class="svc-chip" data-svc="replit">Replit (전체)</span></td><td>☐ FR별 수용 기준 통과</td></tr>
+<tr class="chip-row"><td>5</td><td>DB·인증</td><td><span class="svc-chip" data-svc="supabase-sql">SQL Editor</span> <span class="svc-chip" data-svc="supabase-rls-doc">RLS 가이드</span></td><td>☐ FR-006 AC 전 항목 통과</td></tr>
+<tr class="chip-row"><td>6</td><td>시크릿</td><td><span class="svc-chip" data-svc="vercel-env-doc">Vercel Env 가이드</span> <span class="svc-chip" data-svc="github">GitHub 보안</span></td><td>☐ GitHub에 시크릿 미노출 확인</td></tr>
+<tr class="chip-row"><td>7</td><td>테스트</td><td><span class="svc-chip" data-svc="playwright">Playwright</span> <span class="svc-chip" data-svc="vitest">Vitest</span></td><td>☐ "가입→로그인→..." 5분 시나리오</td></tr>
+<tr class="chip-row"><td>8</td><td>배포</td><td><span class="svc-chip" data-svc="vercel-dashboard">Vercel Import</span></td><td>☐ https URL로 접속·동작 확인</td></tr>
+<tr class="chip-row"><td>9+</td><td>도메인·모니터링</td><td><span class="svc-chip" data-svc="cloudflare">Cloudflare Pages</span> <span class="svc-chip" data-svc="domain">도메인 등록</span></td><td>☐ 커스텀 도메인 HTTPS 통과</td></tr>
+</table>
+
+<h2 id="s9">9. 배포 전 최종 점검 (보안 체크리스트)</h2>
+<p>점검 도구를 열어 두세요:
+<span class="svc-chip" data-svc="supabase-dashboard">Supabase 대시보드</span>
+<span class="svc-chip" data-svc="vercel-dashboard">Vercel 대시보드</span>
+<span class="svc-chip" data-svc="github">GitHub 저장소</span></p>
+<ul>
+  <li>☐ API 키가 코드에 박혀 있지 않고 전부 환경변수(.env)로 옮겼는가</li>
+  <li>☐ profiles·transactions 모두 RLS가 켜져 있고 정책이 "본인만"인가</li>
+  <li>☐ AI가 설치하라고 한 패키지 이름이 npm/공식 문서에 실제로 존재하는가</li>
+  <li>☐ 로그인·권한 흐름(세션 만료, 타인 데이터 접근 차단)을 손으로 한 번 검토했는가</li>
+  <li>☐ Vercel Hobby·Supabase Free 한도(빌드·대역폭·DB 용량)를 확인했는가</li>
+  <li>☐ 실제 서비스 데이터 없이 더미 데이터로 테스트했는가 (격리 샌드박스 원칙)</li>
+</ul>
+
+<h2 id="s10">10. AI 프롬프트 템플릿 모음</h2>
+<h3>10-1. 프로젝트 생성 (처음 1회)</h3>
+<div class="pb"><b>▶</b> "Next.js App Router + TypeScript + Tailwind CSS로 프로젝트를 새로 만들어 줘. Supabase 연동 설정을 포함하고, 폴더 구조는 app/(auth), app/(main)으로 분리해 줘. 실행 명령어와 초기 설정법을 알려 줘."</div>
+<h3>10-2. 기능별 프롬프트</h3>
+<p>섹션 3의 각 FR 박스에 있는 <b>"▶ AI 프롬프트"</b>를 그대로 복사해 사용하세요. 한 번에 하나씩만 실행합니다.</p>
+<h3>10-3. 디버깅 프롬프트</h3>
+<div class="pb"><b>▶</b> "이 에러 메시지와 관련 코드를 확인해 줘. [에러 메시지 붙여넣기] 원인이 무엇인지 설명하고, 가장 간단한 수정안으로 코드를 고쳐 줘. 수정 후 어떤 테스트를 해야 하는지 알려 줘."</div>
+<h3>10-4. 코드 리뷰 프롬프트 (배포 전 1회)</h3>
+<div class="pb"><b>▶</b> "이 프로젝트 전체를 검토해 줘. ① 보안 취약점(RLS 누락, 시크릿 노출, 인증 우회) ② 중복 코드·불필요한 DB 호출 ③ 성능 문제 ④ 무료 티어 한도를 넘길 수 있는 부분을 순서대로 찾아서, 심각도와 수정안을 표로 정리해 줘."</div>
+
+<h2>부록. 변경 이력</h2>
+<table>
+<tr><th>버전</th><th>날짜</th><th>변경 내용</th></tr>
+<tr><td>v1.0</td><td>2026-08-29</td><td>최초 작성 (초보자 가이드 기반, 달력 가계부 예시)</td></tr>
+<tr><td>v1.1 인터랙티브</td><td>2026-08-29</td><td>모든 서비스명에 클릭 칩 + 우측 슬라이드 패널(설정 단계·입력폼·복사 버튼) 추가. 23개 딥링크 검증 완료 (8/8 단계 콘솔·문서·테스트 도구)</td></tr>
+</table>
+
+<p class="sub" style="margin-top:36px; border-top:1px solid var(--line); padding-top:16px;">
+※ 모든 링크는 <code>target="_blank" rel="noopener noreferrer"</code> 새 창으로 열립니다. 임베드(iframe)는 콘솔 X-Frame-Options 정책으로 차단되어 시도하지 않습니다.<br>
+※ 시방서 내용을 변경할 때는 <b>먼저 이 문서를 수정한 뒤</b> AI에게 작업을 시키세요. 시방서가 곧 AI 주문서입니다.
+</p>
+
+<!-- ===== 인터랙티브 모달 + JS ===== -->
+<div id="svcModal" aria-hidden="true">
+  <div class="overlay" onclick="closeSvc()"></div>
+  <div class="panel" role="dialog" aria-label="서비스 설정 패널">
+    <div class="head">
+      <h3 id="svcTitle">서비스 설정</h3>
+      <button class="close" onclick="closeSvc()" aria-label="닫기">×</button>
+    </div>
+    <div class="body" id="svcBody">로딩…</div>
+    <div class="foot">
+      <button class="pbtn" onclick="openSvcUrl()">🔗 새 창에서 다시 열기</button>
+      <button class="pbtn primary" onclick="copyEnv()">📋 .env 템플릿 복사</button>
+      <button class="pbtn" onclick="copyAll()">📄 단계 전체 복사</button>
+      <span class="copyok" id="copyOk">복사됨 ✓</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 모든 딥링크는 batch_web_search/url_metadata로 검증 (Supabase·Vercel·GitHub·Cloudflare 등은
+   X-Frame-Options/CSP로 iframe 임베드가 차단되므로 항상 window.open 새 창 + 사이드 모달 패턴 사용) */
+const SERVICES = {
+  "nodejs": {
+    name:"Node.js 20 LTS",
+    url:"https://nodejs.org",
+    steps:[
+      "OS별 설치 파일 다운로드 (Windows .msi, macOS .pkg, Linux apt)",
+      "설치 마법사 'Add to PATH' 체크 유지",
+      "터미널 닫고 새로 열고 <code>node -v</code> → v20.x.x 확인",
+      "(macOS) Homebrew 사용 시: <code>brew install node@20</code>"
+    ],
+    inputs:[{key:"node_version", label:"설치된 버전", placeholder:"v20.x.x"}],
+    env:'# Node.js — 설치 확인만 필요. 환경변수 없음.'
+  },
+  "git": {
+    name:"Git + 초기 설정",
+    url:"https://git-scm.com",
+    steps:[
+      "<code>git --version</code>으로 설치 확인",
+      "전역 사용자 설정 (본인 GitHub 계정과 동일하게):<br><code>git config --global user.name \"내 이름\"</code><br><code>git config --global user.email \"내@이메일.com\"</code>",
+      "기본 브랜치 main 지정:<br><code>git config --global init.defaultBranch main</code>",
+      "(선택) GitHub SSH 키 등록: <code>ssh-keygen -t ed25519</code> 후 공개키를 GitHub Settings → SSH keys에 추가"
+    ],
+    inputs:[{key:"git_user", label:"git user.name", placeholder:"홍길동"}],
+    env:'# Git — 로컬 설정만 필요. 환경변수 없음.'
+  },
+  "vscode": {
+    name:"VS Code + 한국어 확장",
+    url:"https://code.visualstudio.com",
+    steps:[
+      "OS별 설치 파일 다운로드 및 설치",
+      "확장(Extensions) 탭에서 'Korean Language Pack' 검색·설치",
+      "확장 'ESLint', 'Prettier', 'Tailwind CSS IntelliSense' 설치",
+      "Settings → Default Formatter = Prettier, Format On Save = true"
+    ],
+    inputs:[],
+    env:'# VS Code — 로컬 에디터. 환경변수 없음.'
+  },
+  "cursor": {
+    name:"Cursor AI IDE",
+    url:"https://www.cursor.com",
+    steps:[
+      "Download 페이지에서 OS별 설치 파일 다운로드",
+      "설치 후 GitHub 또는 Google 계정으로 가입",
+      "Pro($20/월) 또는 Free 시작. Free는 월 2000 completion 한도",
+      "File → Open Folder로 <code>my-app</code> 폴더 선택",
+      "프로젝트 루트에 <code>.cursorrules</code> 파일 생성 → 아래 템플릿 붙여넣기"
+    ],
+    inputs:[
+      {key:"project_dir", label:"프로젝트 폴더", placeholder:"C:/projects/my-app"}
+    ],
+    env:'# .cursorrules\n한국어 UI, TypeScript strict\nTailwind만 사용\n외부 라이브러리: 설치 전 npm 공식 사이트에서 존재 확인\nRLS·시크릿 = 환경변수만 사용'
+  },
+  "claude-code": {
+    name:"Claude Code (터미널 에이전트)",
+    url:"https://www.anthropic.com/claude-code",
+    steps:[
+      "Node 18+ 확인 (<code>node -v</code>)",
+      "전역 설치: <code>npm install -g @anthropic-ai/claude-code</code>",
+      "프로젝트 폴더에서 <code>claude</code> 입력 → Anthropic 계정 로그인",
+      "대형 코드베이스(5만 줄+) 탐색·리팩토링에 강점"
+    ],
+    inputs:[],
+    env:'# Claude Code — npm 토큰이 자동 관리. 환경변수 없음.'
+  },
+  "nextjs-docs": {
+    name:"Next.js App Router 문서",
+    url:"https://nextjs.org/docs",
+    steps:[
+      "좌측 메뉴에서 'App Router' 선택",
+      "기본 튜토리얼 한 번 따라 해보기 (Routing, Data Fetching)",
+      "Server Components vs Client Components 차이 숙지",
+      "<code>'use client'</code> 지시문 위치 확인"
+    ],
+    inputs:[],
+    env:'# Next.js — 프레임워크 자체. 환경변수는 아래 ⑥ 시크릿 단계에서 추가.'
+  },
+  "tailwind-docs": {
+    name:"Tailwind CSS (Next.js 가이드)",
+    url:"https://tailwindcss.com/docs/installation/framework-guides/nextjs",
+    steps:[
+      "Next.js 프로젝트에서 자동 설치 (Tailwind v4 기준):<br><code>npm install tailwindcss @tailwindcss/postcss postcss</code>",
+      "<code>postcss.config.mjs</code> 생성 후 <code>@tailwindcss/postcss</code> 추가",
+      "<code>app/globals.css</code> 첫 줄에 <code>@import \"tailwindcss\";</code>",
+      "<code>npm run dev</code>로 적용 확인"
+    ],
+    inputs:[],
+    env:'# Tailwind — CSS 유틸리티. 환경변수 없음.'
+  },
+  "supabase-dashboard": {
+    name:"Supabase 대시보드",
+    url:"https://supabase.com/dashboard",
+    steps:[
+      "GitHub 계정으로 가입 (무료)",
+      "New Project → Organization 생성 → 프로젝트명 입력 (예: calendar-ledger)",
+      "Database Password 강력하게 설정, Region은 Northeast Asia (Seoul) 권장",
+      "Project 생성 완료 (1~2분)",
+      "좌측 Settings → API 메뉴에서 <b>Project URL</b>과 <b>anon public key</b> 복사",
+      "좌측 SQL Editor로 이동 (다음 단계)"
+    ],
+    inputs:[
+      {key:"supabase_url", label:"NEXT_PUBLIC_SUPABASE_URL", placeholder:"https://xxxxx.supabase.co"},
+      {key:"supabase_anon", label:"NEXT_PUBLIC_SUPABASE_ANON_KEY", placeholder:"eyJhbGciOi..."}
+    ],
+    env:'NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co\nNEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...\n# ↓ 서버 전용 (절대 NEXT_PUBLIC_ 접두사 금지)\nSUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...'
+  },
+  "supabase-sql": {
+    name:"Supabase SQL Editor",
+    url:"https://supabase.com/dashboard/project/_/sql",
+    steps:[
+      "좌측 메뉴 → SQL Editor → 'New query'",
+      "시방서 §5-3의 RLS SQL 복사·붙여넣기",
+      "Run 버튼 클릭 → Success 메시지 확인",
+      "테이블 Editor에서 profiles·transactions 두 테이블 모두 'RLS enabled' 표시 확인"
+    ],
+    inputs:[],
+    env:'# Supabase SQL Editor — 코드만 실행. 환경변수 없음.\n# 단, RLS 적용 후 클라이언트 anon key에 정책이 자동으로 적용됨.'
+  },
+  "supabase-rls-doc": {
+    name:"Supabase RLS 공식 가이드",
+    url:"https://supabase.com/docs/guides/database/postgres/row-level-security",
+    steps:[
+      "<code>auth.uid()</code> 함수가 비로그인 시 null을 반환한다는 점 숙지",
+      "<code>USING</code> (조회·수정·삭제 조건) vs <code>WITH CHECK</code> (삽입·수정 시 값 검증) 차이 학습",
+      "예제 정책 'Enable read access for all users' 같은 템플릿을 참고해 본인 정책 작성",
+      "Storage 버킷에도 동일하게 RLS 적용 가능"
+    ],
+    inputs:[],
+    env:'# RLS 개념 문서 — 환경변수 없음.'
+  },
+  "vercel-dashboard": {
+    name:"Vercel 대시보드",
+    url:"https://vercel.com/dashboard",
+    steps:[
+      "GitHub 계정으로 가입 (무료)",
+      "Add New → Project → Import Git Repository",
+      "GitHub 저장소 <code>my-app</code> 선택 → Import",
+      "Framework Preset = Next.js 자동 인식 확인",
+      "Environment Variables 섹션에서 시방서 §6의 변수 입력 (다음 칩 참고)",
+      "Deploy 클릭 → 1~2분 후 빌드 URL 생성"
+    ],
+    inputs:[
+      {key:"git_repo", label:"GitHub 저장소", placeholder:"username/my-app"}
+    ],
+    env:'# Vercel 자체는 환경변수 없음. 단 아래 변수들을 Vercel Environment Variables에 동일하게 등록:\nNEXT_PUBLIC_SUPABASE_URL=...\nNEXT_PUBLIC_SUPABASE_ANON_KEY=...\nPRODUCTION_DOMAIN=my-app.vercel.app'
+  },
+  "vercel-env-doc": {
+    name:"Vercel 환경변수 가이드",
+    url:"https://vercel.com/docs/projects/environment-variables",
+    steps:[
+      "Project → Settings → Environment Variables 이동",
+      "Key에 변수명, Value에 값 입력",
+      "Environment 체크박스: Production, Preview, Development 3개 모두 체크 권장",
+      "Sensitive 토글 체크 시 값이 마스킹되어 표시됨 (시크릿 변수에 필수)",
+      "저장 후 자동 재배포되거나 수동 Redeploy 필요"
+    ],
+    inputs:[],
+    env:'# 환경변수 자체는 Vercel 웹에서 입력. 파일에는 NEXT_PUBLIC_ 접두사 변수만 주석으로 관리.'
+  },
+  "github": {
+    name:"GitHub",
+    url:"https://github.com",
+    steps:[
+      "GitHub 계정 가입 및 로그인",
+      "(선택) 2FA 활성화 — Settings → Password and authentication",
+      "Settings → SSH and GPG keys → New SSH key로 로컬 공개키 추가",
+      "<code>ssh -T git@github.com</code>으로 연결 테스트"
+    ],
+    inputs:[
+      {key:"gh_user", label:"GitHub 사용자명", placeholder:"username"}
+    ],
+    env:'# GitHub — 환경변수 없음. (CI/CD용 GitHub Actions Secret은 별도 설정)'
+  },
+  "github-new": {
+    name:"GitHub 새 저장소 생성",
+    url:"https://github.com/new",
+    steps:[
+      "Repository name 입력 (예: calendar-ledger)",
+      "Public/Private 선택 (학습용은 Public)",
+      "Add a README file 체크 (선택)",
+      "Create repository 클릭",
+      "로컬에서 push:<br><code>git remote add origin git@github.com:USER/my-app.git</code><br><code>git push -u origin main</code>"
+    ],
+    inputs:[],
+    env:'# GitHub — 환경변수 없음.'
+  },
+  "cloudflare": {
+    name:"Cloudflare Pages (Vercel 대안)",
+    url:"https://dash.cloudflare.com",
+    steps:[
+      "Cloudflare 계정 가입 (무료)",
+      "Workers & Pages → Create application → Pages → Connect to Git",
+      "GitHub 저장소 선택 후 Begin setup",
+      "Build command = <code>npm run build</code>, Build output = <code>.next</code> (Next.js) 또는 <code>out</code> (정적 export)",
+      "Environment variables에 시방서 §6 변수 입력 후 Save and Deploy"
+    ],
+    inputs:[],
+    env:'# Cloudflare Pages — 빌드 시 환경변수 동일하게 등록.'
+  },
+  "notion": {
+    name:"Notion (기획 메모)",
+    url:"https://www.notion.so",
+    steps:[
+      "계정 가입 후 새 페이지 생성",
+      "제목: '달력 가계부 시방서 v1.0'",
+      "본문에 시방서 §1~2 (개요·범위) 붙여넣기",
+      "체크박스 블록으로 §8 단계별 체크리스트 복제 → 매 단계 완료 시 체크"
+    ],
+    inputs:[],
+    env:'# Notion — 문서 도구. 환경변수 없음.'
+  },
+  "v0": {
+    name:"v0.dev (UI 아이디어 시각화)",
+    url:"https://v0.dev",
+    steps:[
+      "Vercel 계정으로 로그인",
+      "프롬프트 입력: '월별 가계부 홈 화면, 흰 배경, 카드 3개로 수입/지출/잔액 표시'",
+      "생성된 디자인 중 마음에 드는것 선택 → Code 복사 → Cursor에 붙여넣기",
+      "v0은 UI 아이디어용. 최종 코드는 시방서 FR 단위로 직접 작성 권장"
+    ],
+    inputs:[],
+    env:'# v0 — 디자인 생성 도구. 환경변수 없음.'
+  },
+  "replit": {
+    name:"Replit (올인원 환경)",
+    url:"https://replit.com",
+    steps:[
+      "계정 가입 후 '+ Create Repl' → Template = Next.js",
+      "Repl 이름 입력 (예: calendar-ledger)",
+      "좌측 Secrets 탭에서 환경변수 입력",
+      "Shell에서 <code>npm install @supabase/ssr @supabase/supabase-js</code>",
+      "Run 버튼으로 즉시 미리보기 가능. 단 외부 의존성 많아지면 로컬+Cursor로 이전 권장"
+    ],
+    inputs:[],
+    env:'# Replit Secrets 탭에서 동일한 변수 등록:\nNEXT_PUBLIC_SUPABASE_URL=...\nNEXT_PUBLIC_SUPABASE_ANON_KEY=...'
+  },
+  "playwright": {
+    name:"Playwright (브라우저 자동 테스트)",
+    url:"https://playwright.dev",
+    steps:[
+      "<code>npm install -D @playwright/test</code>",
+      "<code>npx playwright install</code> (브라우저 다운로드)",
+      "<code>tests/e2e.spec.ts</code> 작성 → <code>npx playwright test</code> 실행",
+      "회원가입→로그인→등록→삭제 시나리오 자동화"
+    ],
+    inputs:[],
+    env:'# Playwright 환경변수 (선택):\nPLAYWRIGHT_TEST_BASE_URL=http://localhost:3000'
+  },
+  "vitest": {
+    name:"Vitest (유닛 테스트)",
+    url:"https://vitest.dev",
+    steps:[
+      "<code>npm install -D vitest @vitest/ui</code>",
+      "<code>package.json</code> scripts에 <code>\"test\": \"vitest\"</code> 추가",
+      "<code>tests/unit/balance.test.ts</code> 처럼 함수 단위 테스트 작성",
+      "<code>npm test</code> 실행 → 통과 확인"
+    ],
+    inputs:[],
+    env:'# Vitest — 환경변수 없음.'
+  },
+  "domain": {
+    name:"도메인 등록 + DNS",
+    url:"https://www.cloudflare.com/products/registrar",
+    steps:[
+      "Cloudflare Registrar 또는 가비아·Namecheap에서 도메인 구매",
+      "Cloudflare DNS에 추가: A 레코드 또는 CNAME → Vercel 배포 URL",
+      "Vercel Project → Settings → Domains에 도메인 입력 → 'Add'",
+      "Vercel 안내 TXT 레코드 DNS에 추가 → 인증 자동 진행",
+      "HTTPS 인증서 자동 발급 (최대 24시간, 보통 즉시)"
+    ],
+    inputs:[
+      {key:"domain", label:"도메인", placeholder:"my-app.example.com"}
+    ],
+    env:'# 도메인 환경변수:\nNEXT_PUBLIC_SITE_URL=https://my-app.example.com'
+  }
+};
+
+let _currentKey = null;
+let _currentUrl = null;
+
+function openSvc(key){
+  const svc = SERVICES[key];
+  if(!svc){ return; }
+  _currentKey = key;
+  _currentUrl = svc.url;
+
+  // 새 창으로 콘솔/문서 열기 (X-Frame 차단 우회, 보안 속성 포함)
+  try { window.open(svc.url, '_blank', 'noopener,noreferrer'); }
+  catch(e){ /* 팝업 차단 시 fall-through: 패널의 '새 창에서 다시 열기' 버튼으로 안내 */ }
+
+  // 모달 렌더
+  document.getElementById('svcTitle').textContent = svc.name;
+  const inputs = (svc.inputs||[]).map((i,idx)=>
+    `<div class="inp"><label for="ip_${idx}">${i.label}</label>
+       <input id="ip_${idx}" data-key="${i.key}" placeholder="${i.placeholder||''}"></div>`
+  ).join('');
+  const steps = svc.steps.map(s=>`<div class="step">${s}</div>`).join('');
+  document.getElementById('svcBody').innerHTML =
+    `<div class="urlbox">${svc.url}</div>
+     <div style="margin-top:14px; font-size:13px; color:#6c757d;">
+       위 콘솔이 새 창에서 열렸습니다. 안 열렸다면 아래 [새 창에서 다시 열기] 클릭.
+     </div>
+     <h3 style="margin-top:18px; font-size:15px;">설정 단계</h3>
+     ${steps}
+     ${inputs ? `<h3 style="margin-top:18px; font-size:15px;">이 서비스에서 복사한 값 입력</h3>${inputs}` : ''}
+     <div style="margin-top:14px; font-size:12.5px; color:#868e96;">
+       ※ 입력값은 이 브라우저 세션에서만 유지되며 외부로 전송되지 않습니다.
+     </div>`;
+  document.getElementById('svcModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSvc(){
+  document.getElementById('svcModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function openSvcUrl(){
+  if(_currentUrl){ window.open(_currentUrl, '_blank', 'noopener,noreferrer'); }
+}
+function copyEnv(){
+  const svc = SERVICES[_currentKey]; if(!svc) return;
+  const inputs = document.querySelectorAll('#svcBody input[data-key]');
+  let env = svc.env || '';
+  inputs.forEach(inp=>{
+    if(inp.value){
+      // 입력값으로 ENV 라인의 = 우측을 치환 (있을 경우만)
+      env = env.replace(new RegExp('=' + inp.dataset.key + '\\b.*$', 'm'),
+                        '=' + inp.value);
+    }
+  });
+  copyToClipboard(env, '.env 템플릿');
+}
+function copyAll(){
+  const svc = SERVICES[_currentKey]; if(!svc) return;
+  const inputs = document.querySelectorAll('#svcBody input[data-key]');
+  let text = `[${svc.name}] — ${svc.url}\n\n설정 단계:\n` +
+             svc.steps.map((s,i)=>`${i+1}. ` + s.replace(/<[^>]+>/g,'')).join('\n') +
+             `\n\n입력값:\n` +
+             Array.from(inputs).map(i=>`- ${i.previousElementSibling?.textContent || i.dataset.key}: ${i.value||'(미입력)'}`).join('\n') +
+             `\n\n.env 템플릿:\n${(svc.env||'').replace(/=/+'(.*)$/m,'')}`;
+  copyToClipboard(text, '전체 내용');
+}
+function copyToClipboard(text, label){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>flashCopy(`${label} 복사됨`));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flashCopy(`${label} 복사됨`); } catch{}
+    ta.remove();
+  }
+}
+function flashCopy(msg){
+  const el = document.getElementById('copyOk');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+// 모든 svc-chip에 클릭 핸들러 바인딩
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.svc-chip[data-svc]').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.preventDefault();
+      openSvc(el.dataset.svc);
+    });
+  });
+  // ESC로 모달 닫기
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape') closeSvc();
+  });
+});
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79"}' crossorigin="anonymous"></script>
+</body>
+</html>

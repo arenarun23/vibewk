@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+:root {
+  --brand: #3b5bdb;
+  --accent: #e8590c;
+  --income: #2f9e44;
+  --expense: #e03131;
+}
+
+body {
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+}
