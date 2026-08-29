@@ -5,9 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const LINKS = [
-  { href: "/", label: "요약" },
-  { href: "/calendar", label: "달력" },
-  { href: "/settings/categories", label: "설정" },
+  { href: "/", label: "프로젝트" },
+  { href: "/projects/new", label: "신규 생성" },
 ];
 
 export default function NavBar() {
@@ -25,7 +24,7 @@ export default function NavBar() {
     <nav className="sticky top-0 z-10 border-b border-gray-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
         <Link href="/" className="text-lg font-bold text-[var(--brand)]">
-          달력 가계부
+          VibeDeploy Hub
         </Link>
         <div className="flex items-center gap-1">
           {LINKS.map((link) => {

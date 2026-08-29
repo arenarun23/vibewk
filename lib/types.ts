@@ -1,37 +1,76 @@
-export type TransactionType = "income" | "expense";
+export type Framework = "nextjs" | "vite" | "sveltekit";
+export type Hosting = "vercel";
+export type SourceType = "paste" | "existing_repo";
+export type ProjectStatus = "pending" | "building" | "live" | "error" | "cancelled";
+export type DeploymentStatus = "queued" | "building" | "ready" | "error";
 
-export interface Transaction {
+export interface Project {
   id: string;
-  user_id: string;
-  type: TransactionType;
-  amount: number;
-  category: string;
-  memo: string | null;
-  txn_date: string; // YYYY-MM-DD
-  created_at: string;
-}
-
-export interface Category {
-  id: string;
-  user_id: string;
+  owner_id: string;
   name: string;
-  is_default: boolean;
+  framework: Framework;
+  hosting: Hosting;
+  source_type: SourceType;
+  repo_url: string | null;
+  live_url: string | null;
+  status: ProjectStatus;
   created_at: string;
 }
 
-export interface CategorySummary {
-  category: string;
-  amount: number;
-  ratio: number; // 0~1
+export interface ProjectFile {
+  id: string;
+  project_id: string;
+  path: string;
+  content: string;
+  created_at: string;
 }
 
-export interface MonthSummary {
-  income: number;
-  expense: number;
-  balance: number;
-  byCategory: CategorySummary[];
+export type PipelineStep =
+  | "created"
+  | "security_gate"
+  | "github_pushed"
+  | "deploying"
+  | "live"
+  | "failed";
+
+export interface PipelineState {
+  id: string;
+  project_id: string;
+  current_step: PipelineStep;
+  idempotency_key: string;
+  last_error: string | null;
+  updated_at: string;
 }
 
-export const DEFAULT_CATEGORIES = ["식비", "교통", "쇼핑", "주거", "문화", "기타"] as const;
+export interface Deployment {
+  id: string;
+  project_id: string;
+  host: string;
+  host_project_id: string;
+  commit_sha: string | null;
+  status: DeploymentStatus;
+  url: string | null;
+  log_url: string | null;
+  created_at: string;
+}
 
-export const FALLBACK_CATEGORY = "기타";
+export interface ProjectDetail {
+  project: Project;
+  pipeline: PipelineState | null;
+  files: ProjectFile[];
+  deployments: Deployment[];
+}
+
+export const FRAMEWORK_LABELS: Record<Framework, string> = {
+  nextjs: "Next.js",
+  vite: "Vite",
+  sveltekit: "SvelteKit",
+};
+
+export const STATUS_LABELS: Record<ProjectStatus, string> = {
+  pending: "대기",
+  building: "빌드 중",
+  live: "Live",
+  error: "오류",
+  cancelled: "취소됨",
+};

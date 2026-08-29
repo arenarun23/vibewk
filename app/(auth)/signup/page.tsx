@@ -10,7 +10,6 @@ export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nickname, setNickname] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,11 +25,7 @@ export default function SignupPage() {
 
     setLoading(true);
     const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { nickname } },
-    });
+    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
 
     if (signUpError) {
       setLoading(false);
@@ -39,7 +34,7 @@ export default function SignupPage() {
     }
 
     // Supabase 프로젝트에서 "Confirm email"이 꺼져 있으면 세션이 바로 발급되어
-    // 자동 로그인된다 (AC-001.2). 켜져 있으면 이메일 인증 안내로 대체된다.
+    // 자동 로그인된다 (AC-1.1). 켜져 있으면 이메일 인증 안내로 대체된다.
     if (data.session) {
       router.push("/");
       router.refresh();
@@ -54,24 +49,9 @@ export default function SignupPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="mb-1 text-2xl font-bold text-[var(--brand)]">회원가입</h1>
-        <p className="mb-6 text-sm text-gray-500">달력 가계부를 시작해 보세요</p>
+        <p className="mb-6 text-sm text-gray-500">VibeDeploy Hub를 시작해 보세요</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="nickname" className="text-sm font-medium text-gray-700">
-              닉네임
-            </label>
-            <input
-              id="nickname"
-              type="text"
-              required
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-blue-100"
-              placeholder="홍길동"
-            />
-          </div>
-
           <div className="flex flex-col gap-1">
             <label htmlFor="email" className="text-sm font-medium text-gray-700">
               이메일
@@ -99,7 +79,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[var(--brand)] focus:ring-2 focus:ring-blue-100"
-              placeholder="8자 이상"
+              placeholder="8자 이상, 영문+숫자"
             />
           </div>
 

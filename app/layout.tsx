@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "달력 가계부",
-  description: "수입·지출을 등록하고 달력에서 한눈에 확인하는 가계부",
+  title: "VibeDeploy Hub",
+  description: "코드를 가져오면 GitHub 저장소 생성·push·배포까지 자동으로 진행합니다.",
 };
 
 export default function RootLayout({

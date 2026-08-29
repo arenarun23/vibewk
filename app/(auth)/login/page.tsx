@@ -38,8 +38,8 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-2xl font-bold text-[var(--brand)]">달력 가계부</h1>
-        <p className="mb-6 text-sm text-gray-500">로그인하고 가계부를 확인하세요</p>
+        <h1 className="mb-1 text-2xl font-bold text-[var(--brand)]">VibeDeploy Hub</h1>
+        <p className="mb-6 text-sm text-gray-500">로그인하고 프로젝트를 확인하세요</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
