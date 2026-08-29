@@ -84,10 +84,7 @@ export default function HomePage() {
 
           <section className="rounded-2xl border border-gray-200 bg-white p-4">
             <h2 className="mb-1 text-sm font-semibold text-gray-700">최근 거래</h2>
-            <TransactionList
-              transactions={recent}
-              onDeleted={(id) => setRecent((prev) => prev.filter((t) => t.id !== id))}
-            />
+            <TransactionList transactions={recent} onDeleted={() => load()} />
           </section>
         </>
       )}
