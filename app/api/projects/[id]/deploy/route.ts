@@ -30,7 +30,8 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   if (pipeline?.current_step === "deploying" || pipeline?.current_step === "live") {
     return NextResponse.json({ skipped: true });
   }
-  if (pipeline?.current_step !== "github_pushed") {
+  // repo_url이 이미 있다는 건 push 단계는 끝났다는 뜻이므로, 'failed'는 배포 단계 재시도로 간주한다.
+  if (pipeline?.current_step !== "github_pushed" && pipeline?.current_step !== "failed") {
     return NextResponse.json({ error: "저장소 push가 아직 완료되지 않았습니다." }, { status: 400 });
   }
 
