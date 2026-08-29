@@ -63,7 +63,7 @@ export async function createDeployment(input: {
   owner: string;
   repo: string;
   ref?: string;
-}): Promise<{ id: string; readyState: string; url: string | null }> {
+}): Promise<{ id: string; readyState: string; url: string | null; inspectorUrl: string | null }> {
   const token = requireToken();
   const res = await fetch(`${VERCEL_API}/v13/deployments${teamQuery()}`, {
     method: "POST",
@@ -88,12 +88,13 @@ export async function createDeployment(input: {
     id: data.id,
     readyState: data.readyState ?? data.status,
     url: data.url ? `https://${data.url}` : null,
+    inspectorUrl: data.inspectorUrl ?? null,
   };
 }
 
 export async function getDeployment(
   deploymentId: string,
-): Promise<{ id: string; readyState: string; url: string | null }> {
+): Promise<{ id: string; readyState: string; url: string | null; inspectorUrl: string | null }> {
   const token = requireToken();
   const res = await fetch(`${VERCEL_API}/v13/deployments/${deploymentId}${teamQuery()}`, {
     headers: headers(token),
@@ -107,7 +108,38 @@ export async function getDeployment(
     id: data.id,
     readyState: data.readyState ?? data.status,
     url: data.url ? `https://${data.url}` : null,
+    inspectorUrl: data.inspectorUrl ?? null,
   };
+}
+
+export async function getVercelProjectByName(name: string): Promise<{ id: string } | null> {
+  const token = requireToken();
+  const res = await fetch(`${VERCEL_API}/v9/projects/${encodeURIComponent(name)}${teamQuery()}`, {
+    headers: headers(token),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Vercel 프로젝트 조회 실패 (${res.status}): ${body}`);
+  }
+  const data = await res.json();
+  return { id: data.id };
+}
+
+/** FR-011: 새 commit 없이 이전 Ready 배포를 즉시 Production으로 승격 */
+export async function promoteDeployment(
+  projectId: string,
+  deploymentId: string,
+): Promise<void> {
+  const token = requireToken();
+  const res = await fetch(
+    `${VERCEL_API}/v10/projects/${projectId}/promote/${deploymentId}${teamQuery()}`,
+    { method: "POST", headers: headers(token) },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Vercel 롤백(promote) 실패 (${res.status}): ${body}`);
+  }
 }
 
 export function mapReadyState(state: string): "queued" | "building" | "ready" | "error" {

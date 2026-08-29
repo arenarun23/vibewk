@@ -12,6 +12,8 @@ export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rollingBack, setRollingBack] = useState(false);
+  const [rollbackError, setRollbackError] = useState<string | null>(null);
   const busy = useRef(false);
 
   const load = useCallback(async () => {
@@ -60,6 +62,19 @@ export default function ProjectDetailPage() {
     load();
   }
 
+  async function rollback() {
+    setRollingBack(true);
+    setRollbackError(null);
+    const res = await fetch(`/api/projects/${id}/rollback`, { method: "POST" });
+    setRollingBack(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setRollbackError(body.error ?? "롤백에 실패했습니다.");
+      return;
+    }
+    load();
+  }
+
   if (loading) {
     return <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>;
   }
@@ -69,6 +84,7 @@ export default function ProjectDetailPage() {
 
   const { project, pipeline, files, deployments } = detail;
   const step = pipeline?.current_step ?? "created";
+  const hasReadyDeployment = deployments.some((d) => d.status === "ready");
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -85,12 +101,24 @@ export default function ProjectDetailPage() {
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm font-medium text-red-700">파이프라인이 중단되었습니다.</p>
           <p className="mt-1 whitespace-pre-wrap text-xs text-red-600">{pipeline?.last_error}</p>
-          <button
-            onClick={retry}
-            className="mt-3 rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-          >
-            재시도
-          </button>
+          {rollbackError && <p className="mt-2 text-xs text-red-600">롤백 실패: {rollbackError}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={retry}
+              className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+            >
+              재시도
+            </button>
+            {hasReadyDeployment && (
+              <button
+                onClick={rollback}
+                disabled={rollingBack}
+                className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+              >
+                {rollingBack ? "롤백 중..." : "마지막 Ready로 롤백"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -131,7 +159,19 @@ export default function ProjectDetailPage() {
             {deployments.map((d) => (
               <li key={d.id} className="flex items-center justify-between py-2 text-sm">
                 <span className="text-gray-500">{new Date(d.created_at).toLocaleString("ko-KR")}</span>
-                <span className="font-medium text-gray-700">{d.status}</span>
+                <div className="flex items-center gap-3">
+                  {d.log_url && (
+                    <a
+                      href={d.log_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[var(--brand)] underline"
+                    >
+                      로그 보기
+                    </a>
+                  )}
+                  <span className="font-medium text-gray-700">{d.status}</span>
+                </div>
               </li>
             ))}
           </ul>

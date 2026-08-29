@@ -61,6 +61,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
       host_project_id: deployment.id,
       status: mapReadyState(deployment.readyState),
       url: deployment.url,
+      log_url: deployment.inspectorUrl,
     });
     await supabase
       .from("pipeline_state")
