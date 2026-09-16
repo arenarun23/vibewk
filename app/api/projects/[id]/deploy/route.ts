@@ -13,7 +13,12 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const { data: project } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .eq("owner_id", user.id)
+    .maybeSingle();
   if (!project) {
     return NextResponse.json({ error: "프로젝트를 찾을 수 없습니다." }, { status: 404 });
   }

@@ -17,6 +17,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .from("projects")
     .select("*")
     .eq("id", id)
+    .eq("owner_id", user.id)
     .maybeSingle();
   if (projectError) {
     return NextResponse.json({ error: "프로젝트를 불러오지 못했습니다." }, { status: 400 });

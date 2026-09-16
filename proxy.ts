@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+// Next 16: middleware.ts는 proxy.ts로 이름이 바뀌었다 (export 함수명도 proxy).
+export async function proxy(request: NextRequest) {
   return updateSession(request);
 }
 
